@@ -5,6 +5,10 @@ from scipy.fftpack import fft, ifft
 
 
 
+#def temporal_filtering(data, TR, low, high):
+
+
+
 def slice_time_correction(data, t, slicetimes, TR, f):
     c_img = np.zeros(data.shape)
     if t>TR or t<0:
@@ -37,8 +41,47 @@ def slice_time_correction(data, t, slicetimes, TR, f):
     
     
     
-#def temporal_filtering(data, TR, low, high):
+
     
+def spatial_smoothing(data, fwhm, kernel_size, voxel_size):
+    
+    smooth = np.zeros(data.shape)
+    for time in range(data.shape[3]):
+       #Applying along x direction
+       kernel_x = prep_kernel(fwhm, kernel_size, voxel_size[0])
+       for y in range(data.shape[1]):
+           for z in range(data.shape[2]):
+               smooth[:,y,z,time] = apply_kernel(data[:,y,z,time], kernel_x)
+       #Applying along y direction
+       kernel_y = prep_kernel(fwhm, kernel_size, voxel_size[1])
+       for x in range(data.shape[0]):
+           for z in range(data.shape[2]):
+               smooth[x,:,z,time] = apply_kernel(smooth[x,:,z,time], kernel_y)
+       #Applying along z direction
+       kernel_z = prep_kernel(fwhm, kernel_size, voxel_size[2])
+       for y in range(data.shape[1]):
+           for x in range(data.shape[0]):
+               smooth[x,y,:,time] = apply_kernel(smooth[x,y,:,time], kernel_z)
+    return smooth
+    
+
+#Preparing a Gaussian Kernel
+def prep_kernel(fwhm, kernel_size, voxel_size):
+    v = np.arange(int(-1*kernel_size/2), int(kernel_size/2)+1)
+    sigma = fwhm/(np.sqrt(8*np.log(2))*voxel_size)
+    w = np.exp(-(v)**2/(2*(sigma**2)))
+    kernel = w/sum(w)
+    return kernel
+    
+
+def apply_kernel(series, kernel):
+    
+    padded_series = np.concatenate((np.zeros(np.size(kernel)//2), series, np.zeros(np.size(kernel)//2)))
+    conv_series = np.zeros(series.shape)
+    for i in range(series.shape[0]):
+        conv_series[i] = np.sum(np.multiply(padded_series[i:i+np.size(kernel)], kernel))
+    
+    return conv_series
 
 
 
@@ -63,16 +106,18 @@ if __name__ == '__main__':
     TR = header.get_zooms()[3]
     TR = TR*1000
     slicetimes = np.array(np.loadtxt(args.slicetime[1]), dtype=np.float32)
-    #print(type(slicetimes[1]))
+    voxel_size = header.get_zooms()[:3]
     f = open(args.output + ".txt", 'a')
     
     
     #print(data.shape, t, slicetimes.shape, TR, type(f))
-    
-    fMRIData = slice_time_correction(data, t, slicetimes, TR, f)
-    print(fMRIData[5][5][5])
+    if args.slicetime!=None:
+        data = slice_time_correction(data, t, slicetimes, TR, f)
+    if args.fwhm!=None:
+        data = spatial_smoothing(data, int(args.fwhm), 5, voxel_size)
+    #print(fMRIData[5][5][5])
     saveNII = True
-    outputImg = nb.Nifti1Image(fMRIData, np.eye(4), header=header)
+    outputImg = nb.Nifti1Image(data, np.eye(4), header=header)
     outputNIIFileName = args.output + '.nii.gz'
     nb.save(outputImg, outputNIIFileName)
     
