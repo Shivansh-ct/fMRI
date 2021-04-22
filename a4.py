@@ -5,7 +5,26 @@ from scipy.fftpack import fft, ifft
 
 
 
-#def temporal_filtering(data, TR, low, high):
+def temporal_filtering(data, TR, low, high):
+    temp_filtered = np.zeros(data.shape)
+    if low>high:
+        temp = high
+        high = low
+        low = temp
+    high_pass = 1/low
+    low_pass = 1/high
+    
+    freq = np.concatenate((np.linspace(0,1.0/(2.0*TR),data.shape[3]//2),np.linspace(-1.0/(2.0*TR),0,data.shape[3]//2)))
+    for x in range(data.shape[0]):
+        for y in range(data.shape[1]):
+            for z in range(data.shape[2]):
+                timeseries = data[x][y][z][:]
+                timeseries = fft(timeseries)
+                timeseries[np.abs(freq)>high_pass]=0
+                timeseries[np.abs(freq)<low_pass]=0
+                timeseries = ifft(timeseries)
+                temp_filtered[x][y][z][:] = timeseries
+    return temp_filtered
 
 
 
@@ -100,27 +119,32 @@ if __name__ == '__main__':
     
     img = nb.load(args.input)
     data = img.get_data()
-   # print("hello")
-    t = int(args.slicetime[0])
+    print(args.cutoff, type(args.cutoff[0]), args.cutoff[1])
+    
     header = img.header
     TR = header.get_zooms()[3]
-    TR = TR*1000
-    slicetimes = np.array(np.loadtxt(args.slicetime[1]), dtype=np.float32)
+    
+    
     voxel_size = header.get_zooms()[:3]
     f = open(args.output + ".txt", 'a')
     
     
     #print(data.shape, t, slicetimes.shape, TR, type(f))
     if args.slicetime!=None:
-        data = slice_time_correction(data, t, slicetimes, TR, f)
+        slicetimes = np.array(np.loadtxt(args.slicetime[1]), dtype=np.float32)
+        t = int(args.slicetime[0])
+        data = slice_time_correction(data, t, slicetimes, TR*1000, f)
     if args.fwhm!=None:
         data = spatial_smoothing(data, int(args.fwhm), 5, voxel_size)
+    if args.cutoff!=None:
+        low = float(args.cutoff[0])
+        high = float(args.cutoff[1])        
+        data = temporal_filtering(data, TR, low, high)
     #print(fMRIData[5][5][5])
     saveNII = True
     outputImg = nb.Nifti1Image(data, np.eye(4), header=header)
     outputNIIFileName = args.output + '.nii.gz'
     nb.save(outputImg, outputNIIFileName)
-    
-    
+
 
                 
