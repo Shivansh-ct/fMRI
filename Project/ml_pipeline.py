@@ -99,7 +99,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.svm import LinearSVC
 
 #Selecting top 5% features
-anova_filter = SelectKBest(f_classif, k=1735)
+anova_filter = SelectKBest(f_classif, k=1600)
 clf = LinearSVC()
 anova_svm = make_pipeline(anova_filter, clf)
 anova_svm.fit(X_train, y_train)
