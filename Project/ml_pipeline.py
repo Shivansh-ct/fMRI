@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-"""
+
 from nilearn import datasets
 from nilearn import input_data
 
@@ -175,7 +175,7 @@ for i in range(100,34717,100):
 #print("Accuracy is: ", accuracy_score(y_test, y_pred))
   np.save("x.npy", np.array(x))
   np.save("y.npy", np.array(y))
-"""
+
 x = np.load("x.npy")
 y = np.load("y.npy")
 
