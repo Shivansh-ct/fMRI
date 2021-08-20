@@ -3,7 +3,7 @@ This repo contains solutions to assignments, homeworks and course project includ
 COL786(Advanced Functional Brain Imaging) credited at IIT Delhi in the spring sem 2020-21 offered by Prof. Rahul Garg from CSE dept.
 
 # Course Project
-Fingerprinting using fMRI data
+Fingerprinting using Machine Learning on fMRI Data
 
 References:
 
